@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { getColorFromId, getInitialsFromName } from "@/lib/colorUtils";
+import { useVortexStore, selectMode } from "@/stores/vortexStore";
 
 /**
  * VortexAvatars (Pure Component)
@@ -42,15 +43,25 @@ export default function VortexAvatars({
   className?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [mode, setMode] = useState<"vortex" | "groups">("vortex");
+  
+  // Zustand for core state only
+  const mode = useVortexStore(selectMode);
+  const { setMode } = useVortexStore();
 
-  // Runtime state
+  // Local refs for animation state (frame-level performance)
   const actorsRef = useRef<any[]>([]);
   const imagesRef = useRef<Map<string, HTMLImageElement | null>>(new Map());
   const sizeRef = useRef({ w: 800, h: 520, dpr: 1 });
   const tweensRef = useRef<any[]>([]);
   const rafRef = useRef<number>(0);
   const timeRef = useRef(0);
+  const modeRef = useRef<"vortex" | "groups">("vortex");
+
+  // Keep modeRef in sync with Zustand mode
+  useEffect(() => {
+    modeRef.current = mode;
+    console.log('🔄 Mode ref updated to:', mode);
+  }, [mode]);
 
   // Mount: setup canvas sizing
   useEffect(() => {
@@ -123,6 +134,9 @@ export default function VortexAvatars({
           omegaScale,
           radPhase,
           angPhase,
+          // Group target positions
+          groupTargetX: x,
+          groupTargetY: y,
           // Floaty noise properties
           floatPhaseX,
           floatPhaseY, 
@@ -178,6 +192,11 @@ export default function VortexAvatars({
     const actors = actorsRef.current;
     if (!actors.length) return;
 
+    // Debug mode every few seconds
+    if (Math.floor(timeRef.current) % 3 === 0 && Math.floor(timeRef.current * 10) % 10 === 0) {
+      console.log('🎮 Current mode in step:', modeRef.current, 'Actors:', actors.length);
+    }
+
     // Tweens
     if (tweensRef.current.length) {
       const now = performance.now();
@@ -192,7 +211,7 @@ export default function VortexAvatars({
       });
     }
 
-    if (mode === "vortex") {
+    if (modeRef.current === "vortex") {
       const { w, h } = sizeRef.current;
       const cx = w / 2;
       const cy = h / 2;
@@ -272,18 +291,27 @@ export default function VortexAvatars({
       }
 
     } else {
-      // Grouped mode: tiny jiggle + floaty effects
+      // Grouped mode: stay at target positions with subtle floaty effects
+      console.log('🏷️ Running group mode animation for', actors.length, 'actors');
       for (const a of actors) {
-        a.x += (Math.random() - 0.5) * 0.25;
-        a.y += (Math.random() - 0.5) * 0.25;
+        // Apply gentle spring force to keep avatars near their group targets
+        const springStrength = 8.0;
+        const damping = 0.85;
         
-        // Apply floaty effects in grouped mode too
+        const dx = a.groupTargetX - a.x;
+        const dy = a.groupTargetY - a.y;
+        
+        a.x += dx * springStrength * dt;
+        a.y += dy * springStrength * dt;
+        
+        // Apply subtle floaty effects (much smaller amplitude in group mode)
         const time = timeRef.current;
-        a.floatOffsetX = Math.sin(time * a.floatSpeedX + a.floatPhaseX) * a.floatAmplitudeX;
-        a.floatOffsetY = Math.sin(time * a.floatSpeedY + a.floatPhaseY) * a.floatAmplitudeY;
+        a.floatOffsetX = Math.sin(time * a.floatSpeedX + a.floatPhaseX) * (a.floatAmplitudeX * 0.3);
+        a.floatOffsetY = Math.sin(time * a.floatSpeedY + a.floatPhaseY) * (a.floatAmplitudeY * 0.3);
         a.floatScale = 1; // Keep uniform size
-        a.floatRotation = Math.sin(time * a.floatSpeedRotation + a.floatPhaseRotation) * a.floatAmplitudeRotation;
+        a.floatRotation = Math.sin(time * a.floatSpeedRotation + a.floatPhaseRotation) * (a.floatAmplitudeRotation * 0.5);
         
+        // Add subtle floaty offset to position (but don't override the spring force)
         a.x += a.floatOffsetX;
         a.y += a.floatOffsetY;
       }
@@ -299,8 +327,9 @@ export default function VortexAvatars({
     ctx.clearRect(0, 0, w, h);
 
     // Depth sort
-    const actors = [...actorsRef.current].sort((a, b) => a.plane - b.plane);
-    for (const a of actors) {
+    const actors = actorsRef.current;
+    const sortedActors = [...actors].sort((a, b) => a.plane - b.plane);
+    for (const a of sortedActors) {
       const size = 20; // Uniform size for all avatars
       const alpha = 1; // Always 100% opacity
       drawAvatar(ctx, a, size, alpha);
@@ -379,35 +408,91 @@ export default function VortexAvatars({
 
   // ----- Layout targets -----
   const computeGroupTargets = () => {
-    const actors = actorsRef.current as any[];
+    const actors = actorsRef.current;
     const { w, h } = sizeRef.current;
+
+    console.log('🎯 Computing group targets for', actors.length, 'actors, canvas size:', w, 'x', h);
 
     const padX = 28;
     const padY = 18;
     const colW = 22;
+    const peoplePerGroup = 3;
 
+    // Calculate number of complete groups and leftover people
+    const completeGroups = Math.floor(actors.length / peoplePerGroup);
+    const leftoverPeople = actors.length % peoplePerGroup;
+    
+    console.log('📊 Complete groups:', completeGroups, 'Leftover people:', leftoverPeople);
+    
+    // Handle edge case: if we have fewer than 3 people total, create 1 group
+    const totalGroups = completeGroups === 0 ? 1 : completeGroups;
+    const groupsPerSide = Math.ceil(totalGroups / 2);
+    
+    console.log('📊 Total groups:', totalGroups, 'Groups per side:', groupsPerSide);
+    
+    // Calculate spacing based on available height and number of groups per side
+    const availableHeight = h - 40; // Leave some margin
+    const groupSpacing = Math.min(40, availableHeight / Math.max(1, groupsPerSide - 1));
+    
     const leftX = 20 + padX;
-    const rightX = w - (20 + padX) - colW * 2;
+    const rightX = w - (20 + padX) - colW * 3; // Make room for 4 people if needed
 
-    const totalRows = 5;
-    const stackH = totalRows * (20 + padY) - padY;
-    const topY = (h - stackH) / 2;
+    console.log('📐 Left X:', leftX, 'Right X:', rightX, 'Group spacing:', groupSpacing);
 
-    const groups = 10;
+    // Start from top with even spacing
+    const startY = 20 + (availableHeight - (groupsPerSide - 1) * groupSpacing) / 2;
+
     const targets: { x: number; y: number }[] = [];
 
-    for (let g = 0; g < groups; g++) {
-      const sideLeft = g < groups / 2;
-      const row = sideLeft ? g : g - groups / 2;
-      const baseX = sideLeft ? leftX : rightX;
-      const baseY = topY + row * (20 + padY);
-      for (let k = 0; k < 3; k++) targets.push({ x: baseX + k * colW, y: baseY });
+    if (completeGroups === 0) {
+      // Special case: fewer than 3 people total, just place them in one group
+      const baseX = leftX;
+      const baseY = startY;
+      
+      console.log(`🏷️ Single group for ${actors.length} people at (${baseX}, ${baseY})`);
+      
+      for (let i = 0; i < actors.length; i++) {
+        targets.push({ x: baseX + i * colW, y: baseY });
+      }
+    } else {
+      // First, place all complete groups of 3
+      for (let g = 0; g < totalGroups; g++) {
+        const sideLeft = g < groupsPerSide;
+        const row = sideLeft ? g : g - groupsPerSide;
+        const baseX = sideLeft ? leftX : rightX;
+        const baseY = startY + row * groupSpacing;
+        
+        console.log(`🏷️ Group ${g}: side=${sideLeft ? 'left' : 'right'}, row=${row}, base=(${baseX}, ${baseY})`);
+        
+        // Add positions for 3 people in this group
+        for (let k = 0; k < peoplePerGroup; k++) {
+          targets.push({ x: baseX + k * colW, y: baseY });
+        }
+      }
+      
+      // Now distribute leftover people among the first few groups
+      for (let i = 0; i < leftoverPeople; i++) {
+        const groupIndex = i % totalGroups; // Cycle through groups
+        
+        // Add the leftover person to the right of the group (4th position)
+        const sideLeft = groupIndex < groupsPerSide;
+        const row = sideLeft ? groupIndex : groupIndex - groupsPerSide;
+        const baseX = sideLeft ? leftX : rightX;
+        const baseY = startY + row * groupSpacing;
+        
+        targets.push({ x: baseX + peoplePerGroup * colW, y: baseY });
+        console.log(`👤 Leftover person ${i} added to group ${groupIndex} at (${baseX + peoplePerGroup * colW}, ${baseY})`);
+      }
     }
-    return actors.map((_, i) => targets[i % targets.length]);
+    
+    console.log('🎯 Generated', targets.length, 'target positions for', actors.length, 'actors');
+    
+    // Return targets for each actor
+    return actors.map((_, i) => targets[i]);
   };
 
   const computeVortexTargets = () => {
-    const actors = actorsRef.current as any[];
+    const actors = actorsRef.current;
     const { w, h } = sizeRef.current;
     const cx = w / 2;
     const cy = h / 2;
@@ -421,35 +506,51 @@ export default function VortexAvatars({
   };
 
   // Toggle with tweens
-  const toggleMode = () => {
-    const goingToGroups = mode === "vortex";
+  const handleToggleMode = () => {
+    const currentMode = modeRef.current;
+    const goingToGroups = currentMode === "vortex";
+    console.log('🔄 Toggling mode:', currentMode, '→', goingToGroups ? 'groups' : 'vortex');
+    
     const targets = goingToGroups ? computeGroupTargets() : computeVortexTargets();
-    const actors = actorsRef.current as any[];
+    const actors = actorsRef.current;
+    
+    console.log('📍 Computed targets:', targets.slice(0, 5)); // Log first 5 targets
+    console.log('👥 Actors count:', actors.length);
+    
     const duration = 900;
     const jitter = 180;
     const now = performance.now();
 
-    tweensRef.current.push(
-      ...actors.map((a, i) => {
-        const sx = a.x,
-          sy = a.y;
-        const tx = targets[i].x,
-          ty = targets[i].y;
-        const delay = (i * 17) % jitter;
-        return {
-          start: now + delay,
-          duration,
-          update: (t: number) => {
-            if (t < 0) return;
-            const tt = clamp(t, 0, 1);
-            a.x = lerp(sx, tx, tt);
-            a.y = lerp(sy, ty, tt);
-          },
-        };
-      })
-    );
+    // If going to groups, update the group target positions
+    if (goingToGroups) {
+      actors.forEach((a, i) => {
+        a.groupTargetX = targets[i].x;
+        a.groupTargetY = targets[i].y;
+        console.log(`🎯 Actor ${i} group target: (${targets[i].x}, ${targets[i].y})`);
+      });
+    }
 
+    const newTweens = actors.map((a, i) => {
+      const sx = a.x,
+        sy = a.y;
+      const tx = targets[i].x,
+        ty = targets[i].y;
+      const delay = (i * 17) % jitter;
+      return {
+        start: now + delay,
+        duration,
+        update: (t: number) => {
+          if (t < 0) return;
+          const tt = clamp(t, 0, 1);
+          a.x = lerp(sx, tx, tt);
+          a.y = lerp(sy, ty, tt);
+        },
+      };
+    });
+
+    tweensRef.current.push(...newTweens);
     setMode(goingToGroups ? "groups" : "vortex");
+    console.log('✅ Mode set to:', goingToGroups ? 'groups' : 'vortex');
   };
 
   return (
@@ -458,7 +559,7 @@ export default function VortexAvatars({
         <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3">
           <div className="flex items-center gap-3">
             <div className="text-xs text-gray-800">
-              Mode: <span className="font-semibold">{mode}</span>
+              Mode: <span className="font-semibold" style={{color: mode === 'groups' ? 'red' : 'blue'}}>{mode}</span>
             </div>
             {showStats && (
               <div className="flex items-center gap-1 text-xs text-gray-800">
@@ -468,10 +569,25 @@ export default function VortexAvatars({
             )}
           </div>
           <button
-            onClick={toggleMode}
+            onClick={() => {
+              console.log('🖱️ Button clicked! Current mode:', mode);
+              handleToggleMode();
+            }}
             className="px-3 py-1.5 rounded-xl bg-white/80 text-gray-800 text-sm hover:bg-white/90 active:scale-[0.98] transition border border-gray-200"
           >
-            {mode === "vortex" ? "Group into 10×3" : "Back to Vortex"}
+            {mode === "vortex" 
+              ? (() => {
+                  const completeGroups = Math.floor(people.length / 3);
+                  const leftover = people.length % 3;
+                  if (completeGroups === 0) {
+                    return `Group ${people.length} people together`;
+                  } else if (leftover === 0) {
+                    return `Group into ${completeGroups} groups of 3`;
+                  } else {
+                    return `Group into ${completeGroups} groups of 3 + ${leftover}`;
+                  }
+                })()
+              : "Back to Vortex"}
           </button>
         </div>
       )}
