@@ -5,7 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 
 export default function Home() {
   // Use your ngrok URL for easy access from anywhere
-  const signupUrl = 'https://ec9c841de615.ngrok-free.app/signup';
+  const signupUrl = 'https://ec9c841de615.ngrok-free.app/live';
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-8">
@@ -37,38 +37,8 @@ export default function Home() {
             Point your camera at the QR code
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Or visit: <span className="font-mono text-indigo-600 dark:text-indigo-400">{signupUrl}</span>
+            Or visit: <a href={signupUrl} className="font-mono text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 underline">{signupUrl}</a>
           </p>
-          
-          {/* Vortex Demo Links */}
-          <div className="pt-8 border-t border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Try the Vortex Demos
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <a
-                href="/live"
-                className="p-4 bg-emerald-100 dark:bg-emerald-900/20 rounded-xl hover:bg-emerald-200 dark:hover:bg-emerald-900/30 transition"
-              >
-                <h4 className="font-semibold text-emerald-800 dark:text-emerald-200">🔴 Live</h4>
-                <p className="text-sm text-emerald-600 dark:text-emerald-300">Real people, real-time</p>
-              </a>
-              <a
-                href="/design"
-                className="p-4 bg-purple-100 dark:bg-purple-900/20 rounded-xl hover:bg-purple-200 dark:hover:bg-purple-900/30 transition"
-              >
-                <h4 className="font-semibold text-purple-800 dark:text-purple-200">🎨 Design</h4>
-                <p className="text-sm text-purple-600 dark:text-purple-300">30 sample avatars</p>
-              </a>
-              <a
-                href="/vortex"
-                className="p-4 bg-blue-100 dark:bg-blue-900/20 rounded-xl hover:bg-blue-200 dark:hover:bg-blue-900/30 transition"
-              >
-                <h4 className="font-semibold text-blue-800 dark:text-blue-200">🌪️ Vortex</h4>
-                <p className="text-sm text-blue-600 dark:text-blue-300">Original demo</p>
-              </a>
-            </div>
-          </div>
         </div>
       </div>
     </div>

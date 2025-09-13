@@ -4,6 +4,12 @@ import { useState } from 'react';
 import RealtimeVortex from '@/components/RealtimeVortex';
 import { useRealtimePresence } from '@/hooks/useRealtimePresence';
 import { samplePeople30 } from '@/lib/sampleData';
+import { getTailwindColorsFromId, getInitialsFromName } from '@/lib/colorUtils';
+
+// Helper function to pluralize text
+const pluralize = (count: number, singular: string, plural: string) => {
+  return count === 1 ? singular : plural;
+};
 
 export default function LivePage() {
   const [hasJoined, setHasJoined] = useState(false);
@@ -28,16 +34,16 @@ export default function LivePage() {
 
   if (!hasJoined) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 flex items-center justify-center p-8">
-        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 max-w-md w-full">
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">Join Live Vortex</h2>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-8">
+        <div className="bg-white shadow-lg border border-gray-200 rounded-2xl p-8 max-w-md w-full">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Join Live Vortex</h2>
           <form onSubmit={handleJoin} className="space-y-4">
             <input
               type="text"
               placeholder="Your name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full p-3 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/30 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="w-full p-3 rounded-xl bg-gray-50 text-gray-800 placeholder-gray-400 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
             <input
@@ -45,30 +51,30 @@ export default function LivePage() {
               placeholder="Your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 rounded-xl bg-white/20 text-white placeholder-white/60 border border-white/30 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="w-full p-3 rounded-xl bg-gray-50 text-gray-800 placeholder-gray-400 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
             <button
               type="submit"
               disabled={!isConnected || !!connectionError}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-600 text-white rounded-xl font-semibold transition"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-xl font-semibold transition border border-blue-600"
             >
               {connectionError 
                 ? 'Connection Error' 
                 : isConnected 
-                  ? `Join Live (${users.length} people online)` 
+                  ? `Join Live (${users.length} ${pluralize(users.length, 'person', 'people')} online)` 
                   : 'Connecting...'}
             </button>
             
             {connectionError && (
-              <div className="text-red-300 text-sm text-center p-3 bg-red-900/20 rounded-xl border border-red-500/30">
+              <div className="text-red-700 text-sm text-center p-3 bg-red-50 rounded-xl border border-red-200">
                 ⚠️ {connectionError}
                 <br />
                 <small>Please check your Supabase configuration in .env.local</small>
               </div>
             )}
           </form>
-          <p className="text-xs text-white/60 text-center mt-4">
+          <p className="text-xs text-gray-500 text-center mt-4">
             Join the live session and see real people in the vortex
           </p>
         </div>
@@ -77,24 +83,20 @@ export default function LivePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">
-            Live Vortex ({users.length} people online)
+          <h1 className="text-4xl font-bold text-gray-800 mb-4">
+           ({users.length} {pluralize(users.length, 'person', 'people')} online)
           </h1>
-          <p className="text-xl text-emerald-200">
-            Real-time collaboration in the vortex
-          </p>
+          
         </div>
         
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Vortex Visualization */}
-          <div className="order-2 lg:order-1">
-            <h2 className="text-2xl font-semibold text-white mb-4 text-center">
-              Vortex View
-            </h2>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 h-[500px]">
+        <div className="space-y-8">
+          {/* Full Width Vortex Visualization */}
+          <div>
+
+            <div className="rounded-2xl p-6 h-[600px]">
               <RealtimeVortex 
                 roomName="live"
                 users={users}
@@ -103,27 +105,24 @@ export default function LivePage() {
                 className="w-full h-full"
                 showControls={true}
               />
-              {/* Debug info */}
-              <div className="mt-2 text-xs text-white/60">
-                Debug: Passing {users.length} users to RealtimeVortex
-              </div>
+            
             </div>
           </div>
 
           {/* User List */}
-          <div className="order-1 lg:order-2">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 h-[500px] overflow-y-auto">
-              <h3 className="text-xl font-semibold text-white mb-4 sticky top-0 bg-inherit">
+          <div>
+            <div className="bg-white shadow-lg border border-gray-200 rounded-2xl p-6 h-[400px] overflow-y-auto">
+              <h3 className="text-xl font-semibold text-gray-800 mb-4 sticky top-0 bg-inherit">
                 Online Users ({users.length})
               </h3>
               
               {users.length === 0 ? (
-                <div className="text-emerald-200/60 text-center py-8">
+                <div className="text-gray-500 text-center py-8">
                   {connectionError ? (
                     <>
                       ❌ Connection Error: {connectionError}
                       <br />
-                      <small className="text-red-300">Check your Supabase configuration in .env.local</small>
+                      <small className="text-red-600">Check your Supabase configuration in .env.local</small>
                     </>
                   ) : (
                     <>
@@ -135,31 +134,34 @@ export default function LivePage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {users.map((user, index) => (
+                  {users.map((user, index) => {
+                    const colors = getTailwindColorsFromId(user.id);
+                    return (
                     <div 
                       key={user.id} 
-                      className="flex items-center gap-4 p-3 bg-white/10 rounded-xl"
+                      className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl border border-gray-200"
                     >
-                      <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
-                        {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      <div className={`w-10 h-10 ${colors.bg} rounded-full flex items-center justify-center ${colors.text} font-semibold border ${colors.border}`}>
+                        {getInitialsFromName(user.name)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium text-white truncate">{user.name}</div>
-                        <div className="text-sm text-emerald-200/60 truncate">{user.email}</div>
+                        <div className="font-medium text-gray-800 truncate">{user.name}</div>
+                        <div className="text-sm text-gray-500 truncate">{user.email}</div>
                       </div>
-                      <div className="text-xs text-emerald-200/40 text-right">
+                      <div className="text-xs text-gray-400 text-right">
                         {new Date(user.joinedAt).toLocaleTimeString()}
                       </div>
                     </div>
-                  ))}
+                  )})}
+                  
                 </div>
               )}
               
               {/* Debug info */}
-              <div className="mt-6 pt-4 border-t border-white/20">
-                <details className="text-xs text-emerald-200/60">
-                  <summary className="cursor-pointer hover:text-emerald-200">Debug Info</summary>
-                  <pre className="mt-2 p-2 bg-black/20 rounded text-xs overflow-x-auto">
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <details className="text-xs text-gray-500">
+                  <summary className="cursor-pointer hover:text-gray-700">Debug Info</summary>
+                  <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-x-auto text-gray-700">
                     {JSON.stringify({
                       isConnected,
                       connectionError,
@@ -178,19 +180,19 @@ export default function LivePage() {
         </div>
         
         <div className="mt-8 text-center space-y-4">
-          <p className="text-sm text-emerald-200/80">
+          <p className="text-sm text-gray-600">
             Share this URL with others to see them join in real-time!
           </p>
           <div className="flex justify-center gap-4">
             <button
               onClick={handleLeave}
-              className="px-6 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-200 rounded-xl text-sm transition border border-red-400/30"
+              className="px-6 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl text-sm transition border border-red-200"
             >
               Leave Session
             </button>
             <button
               onClick={() => navigator.clipboard.writeText(window.location.href)}
-              className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm transition"
+              className="px-6 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-sm transition border border-blue-200"
             >
               Copy Link
             </button>

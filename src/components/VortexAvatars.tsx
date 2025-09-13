@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { getColorFromId, getInitialsFromName } from "@/lib/colorUtils";
 
 /**
  * VortexAvatars (Pure Component)
@@ -15,15 +16,6 @@ const TAU = Math.PI * 2;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
-
-const initialsOf = (name = "?") =>
-  name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");
-
-const pastelFromId = (id: string) => {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return `hsl(${h % 360} 70% 80%)`;
-};
 
 const loadImage = (src?: string | null): Promise<HTMLImageElement | null> =>
   new Promise((resolve) => {
@@ -306,18 +298,11 @@ export default function VortexAvatars({
 
     ctx.clearRect(0, 0, w, h);
 
-    // Background
-    const g = ctx.createRadialGradient(w / 2, h / 2, 18, w / 2, h / 2, Math.max(w, h));
-    g.addColorStop(0, "#0b1020");
-    g.addColorStop(1, "#02040a");
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, w, h);
-
     // Depth sort
     const actors = [...actorsRef.current].sort((a, b) => a.plane - b.plane);
     for (const a of actors) {
       const size = 20; // Uniform size for all avatars
-      const alpha = clamp(0.6 + (a.plane - 1) * 0.25, 0.45, 1);
+      const alpha = 1; // Always 100% opacity
       drawAvatar(ctx, a, size, alpha);
     }
   };
@@ -361,13 +346,13 @@ export default function VortexAvatars({
       }
       ctx.drawImage(a.img, sx, sy, sw, sh, x, y, size, size);
     } else {
-      ctx.fillStyle = pastelFromId(a.id);
+      ctx.fillStyle = getColorFromId(a.id);
       ctx.fillRect(x, y, size, size);
       ctx.fillStyle = "#0b1020";
       ctx.font = `${Math.round(size * 0.48)}px ui-sans-serif, system-ui, -apple-system`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(initialsOf(a.name), x + r, y + r + 0.5);
+      ctx.fillText(getInitialsFromName(a.name), x + r, y + r + 0.5);
     }
 
     ctx.restore();
@@ -468,15 +453,15 @@ export default function VortexAvatars({
   };
 
   return (
-    <div className={`${className} relative bg-black/90 rounded-2xl shadow-xl overflow-hidden`}>
+    <div className={`${className} relative rounded-2xl overflow-hidden`}>
       {showControls && (
         <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3">
           <div className="flex items-center gap-3">
-            <div className="text-xs text-slate-200/80">
+            <div className="text-xs text-gray-800">
               Mode: <span className="font-semibold">{mode}</span>
             </div>
             {showStats && (
-              <div className="flex items-center gap-1 text-xs text-slate-200/80">
+              <div className="flex items-center gap-1 text-xs text-gray-800">
                 {statusText && <span>{statusText}</span>}
                 <span>{people.length} avatars</span>
               </div>
@@ -484,16 +469,14 @@ export default function VortexAvatars({
           </div>
           <button
             onClick={toggleMode}
-            className="px-3 py-1.5 rounded-xl bg-white/10 text-slate-100 text-sm hover:bg-white/20 active:scale-[0.98] transition"
+            className="px-3 py-1.5 rounded-xl bg-white/80 text-gray-800 text-sm hover:bg-white/90 active:scale-[0.98] transition border border-gray-200"
           >
             {mode === "vortex" ? "Group into 10×3" : "Back to Vortex"}
           </button>
         </div>
       )}
       <canvas ref={canvasRef} className="w-full h-full" />
-      <div className="absolute bottom-2 right-3 text-[10px] text-white/40 select-none">
-        Organic whirlpool • up to ~200 avatars
-      </div>
+
     </div>
   );
 }
