@@ -19,7 +19,7 @@ export default function LivePage() {
   const { joinRoom, leaveRoom, users, isConnected, connectionError, addTestUsers, clearTestUsers } = useRealtimePresence('live');
 
   // Leva controls for testing
-  const controls = useControls({
+  const _controls = useControls({
     'Add 30 Test Users': {
       value: false,
       onChange: (value: boolean) => {
@@ -170,7 +170,7 @@ export default function LivePage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {users.map((user, index) => {
+                  {users.map((user, _index) => {
                     const colors = getTailwindColorsFromId(user.id);
                     return (
                     <div 

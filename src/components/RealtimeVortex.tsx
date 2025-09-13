@@ -3,6 +3,11 @@
 import { useMemo, useEffect } from 'react';
 import VortexAvatars, { type Person } from './VortexAvatars';
 
+type RealtimeUser = {
+  id: string;
+  name: string;
+};
+
 export default function RealtimeVortex({ 
   roomName,
   users = [],
@@ -12,7 +17,7 @@ export default function RealtimeVortex({
   isConnected = true
 }: {
   roomName: string;
-  users?: any[];
+  users?: RealtimeUser[];
   fallbackPeople?: Person[];
   className?: string;
   showControls?: boolean;
