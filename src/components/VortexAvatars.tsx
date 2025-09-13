@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { getColorFromId, getInitialsFromName } from "@/lib/colorUtils";
 import { useVortexStore, selectMode } from "@/stores/vortexStore";
 
@@ -166,6 +166,7 @@ export default function VortexAvatars({
       cancelled = true;
       stopAnimation();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [people]);
 
   // RAF

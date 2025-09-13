@@ -216,14 +216,14 @@ export default function LivePage() {
         </div>
         
         {/* Leave Button */}
-        <div className="text-center mt-8">
+        {/* <div className="text-center mt-8">
           <button
             onClick={handleLeave}
             className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition border border-red-600"
           >
             Leave Room
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );

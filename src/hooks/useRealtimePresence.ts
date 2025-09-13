@@ -44,6 +44,11 @@ export function useRealtimePresence(roomName: string) {
   }, [testUsers, channel])
 
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') {
+      return
+    }
+
     // Check if Supabase is properly configured
     try {
       if (!supabase) {
