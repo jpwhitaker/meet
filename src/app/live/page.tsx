@@ -78,7 +78,7 @@ export default function LivePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 p-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">
             Live Vortex ({users.length} people online)
@@ -88,68 +88,91 @@ export default function LivePage() {
           </p>
         </div>
         
-        {/* Debug: Simple list of online users */}
-        <div className="max-w-2xl mx-auto">
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              Online Users ({users.length})
-            </h3>
-            
-            {users.length === 0 ? (
-              <div className="text-emerald-200/60 text-center py-8">
-                {connectionError ? (
-                  <>
-                    ❌ Connection Error: {connectionError}
-                    <br />
-                    <small className="text-red-300">Check your Supabase configuration in .env.local</small>
-                  </>
-                ) : (
-                  <>
-                    No users online yet... 
-                    <br />
-                    <small>Connection status: {isConnected ? '🟢 Connected' : '🔴 Disconnected'}</small>
-                  </>
-                )}
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Vortex Visualization */}
+          <div className="order-2 lg:order-1">
+            <h2 className="text-2xl font-semibold text-white mb-4 text-center">
+              Vortex View
+            </h2>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 h-[500px]">
+              <RealtimeVortex 
+                roomName="live"
+                users={users}
+                isConnected={isConnected}
+                fallbackPeople={samplePeople30}
+                className="w-full h-full"
+                showControls={true}
+              />
+              {/* Debug info */}
+              <div className="mt-2 text-xs text-white/60">
+                Debug: Passing {users.length} users to RealtimeVortex
               </div>
-            ) : (
-              <div className="space-y-3">
-                {users.map((user, index) => (
-                  <div 
-                    key={user.id} 
-                    className="flex items-center gap-4 p-3 bg-white/10 rounded-xl"
-                  >
-                    <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
-                      {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+            </div>
+          </div>
+
+          {/* User List */}
+          <div className="order-1 lg:order-2">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 h-[500px] overflow-y-auto">
+              <h3 className="text-xl font-semibold text-white mb-4 sticky top-0 bg-inherit">
+                Online Users ({users.length})
+              </h3>
+              
+              {users.length === 0 ? (
+                <div className="text-emerald-200/60 text-center py-8">
+                  {connectionError ? (
+                    <>
+                      ❌ Connection Error: {connectionError}
+                      <br />
+                      <small className="text-red-300">Check your Supabase configuration in .env.local</small>
+                    </>
+                  ) : (
+                    <>
+                      No users online yet... 
+                      <br />
+                      <small>Connection status: {isConnected ? '🟢 Connected' : '🔴 Disconnected'}</small>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {users.map((user, index) => (
+                    <div 
+                      key={user.id} 
+                      className="flex items-center gap-4 p-3 bg-white/10 rounded-xl"
+                    >
+                      <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white font-semibold">
+                        {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-white truncate">{user.name}</div>
+                        <div className="text-sm text-emerald-200/60 truncate">{user.email}</div>
+                      </div>
+                      <div className="text-xs text-emerald-200/40 text-right">
+                        {new Date(user.joinedAt).toLocaleTimeString()}
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-white">{user.name}</div>
-                      <div className="text-sm text-emerald-200/60">{user.email}</div>
-                    </div>
-                    <div className="text-xs text-emerald-200/40">
-                      Joined: {new Date(user.joinedAt).toLocaleTimeString()}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+              
+              {/* Debug info */}
+              <div className="mt-6 pt-4 border-t border-white/20">
+                <details className="text-xs text-emerald-200/60">
+                  <summary className="cursor-pointer hover:text-emerald-200">Debug Info</summary>
+                  <pre className="mt-2 p-2 bg-black/20 rounded text-xs overflow-x-auto">
+                    {JSON.stringify({
+                      isConnected,
+                      connectionError,
+                      userCount: users.length,
+                      users: users.map(u => ({ id: u.id, name: u.name, email: u.email })),
+                      environment: {
+                        hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+                        hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+                      }
+                    }, null, 2)}
+                  </pre>
+                </details>
               </div>
-            )}
-            
-            {/* Debug info */}
-            <div className="mt-6 pt-4 border-t border-white/20">
-              <details className="text-xs text-emerald-200/60">
-                <summary className="cursor-pointer hover:text-emerald-200">Debug Info</summary>
-                <pre className="mt-2 p-2 bg-black/20 rounded text-xs overflow-x-auto">
-                  {JSON.stringify({
-                    isConnected,
-                    connectionError,
-                    userCount: users.length,
-                    users: users.map(u => ({ id: u.id, name: u.name, email: u.email })),
-                    environment: {
-                      hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-                      hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-                    }
-                  }, null, 2)}
-                </pre>
-              </details>
             </div>
           </div>
         </div>

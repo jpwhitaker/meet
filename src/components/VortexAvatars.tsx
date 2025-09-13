@@ -97,11 +97,26 @@ export default function VortexAvatars({
         const theta = Math.random() * TAU;
         const x = cx + r * Math.cos(theta);
         const y = cy + r * Math.sin(theta);
-        const baseOmega = 1.6; // rad/s inner
+        const baseOmega = 0.5; // rad/s inner
         const omegaScale = 0.85 + Math.random() * 0.3;
         const radPhase = Math.random();
         const angPhase = Math.random();
         const rDest = r + (Math.random() * 60 - 30);
+        
+        // Floaty noise parameters for organic movement
+        const floatPhaseX = Math.random() * TAU;
+        const floatPhaseY = Math.random() * TAU;
+        const floatPhaseScale = Math.random() * TAU;
+        const floatPhaseRotation = Math.random() * TAU;
+        const floatSpeedX = 0.8 + Math.random() * 0.6; // 0.8-1.4 Hz
+        const floatSpeedY = 0.9 + Math.random() * 0.8; // 0.9-1.7 Hz
+        const floatSpeedScale = 0.6 + Math.random() * 0.4; // 0.6-1.0 Hz
+        const floatSpeedRotation = 0.3 + Math.random() * 0.4; // 0.3-0.7 Hz
+        const floatAmplitudeX = 1.2 + Math.random() * 1.8; // 1.2-3.0 px
+        const floatAmplitudeY = 1.0 + Math.random() * 2.0; // 1.0-3.0 px
+        const floatAmplitudeScale = 0.08 + Math.random() * 0.04; // 0.08-0.12 scale variation
+        const floatAmplitudeRotation = 0.05 + Math.random() * 0.03; // 0.05-0.08 rad rotation
+        
         return {
           id: p.id,
           name: p.name,
@@ -116,6 +131,24 @@ export default function VortexAvatars({
           omegaScale,
           radPhase,
           angPhase,
+          // Floaty noise properties
+          floatPhaseX,
+          floatPhaseY, 
+          floatPhaseScale,
+          floatPhaseRotation,
+          floatSpeedX,
+          floatSpeedY,
+          floatSpeedScale,
+          floatSpeedRotation,
+          floatAmplitudeX,
+          floatAmplitudeY,
+          floatAmplitudeScale,
+          floatAmplitudeRotation,
+          // Computed floaty values (will be updated each frame)
+          floatOffsetX: 0,
+          floatOffsetY: 0,
+          floatScale: 1,
+          floatRotation: 0,
         };
       });
 
@@ -183,25 +216,84 @@ export default function VortexAvatars({
         const wander = Math.sin(time * 0.25 + a.radPhase * TAU) * 6;
         a.rDest = clamp(a.rDest + wander * 0.02, 20, rMax);
 
+        // Integrated neighbor-aware orbital dynamics
+        let radialPressure = 0;
+        let angularPressure = 0;
+        const neighborInfluence = 45; // Influence radius
+        const spacingPreference = 35; // Preferred spacing
+
+        // Check neighbors for orbital adjustments
+        for (const b of actors) {
+          if (a === b) continue;
+          
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          if (dist < neighborInfluence && dist > 0.1) {
+            const crowdingFactor = Math.max(0, spacingPreference - dist) / spacingPreference;
+            
+            // Radial pressure: push to different radius when crowded
+            const radialDir = (b.r > a.r) ? -1 : 1; // Move away radially
+            radialPressure += radialDir * crowdingFactor * 15;
+            
+            // Angular pressure: speed up/slow down to space out
+            const angleDir = Math.atan2(dy, dx);
+            const relativeAngle = ((angleDir - a.theta + TAU) % TAU) - Math.PI;
+            const angularForce = Math.sign(relativeAngle) * crowdingFactor * 0.3;
+            angularPressure += angularForce;
+          }
+        }
+
+        // Apply neighbor-influenced radial target
+        a.rDest += radialPressure * dt;
+        a.rDest = clamp(a.rDest, 20, rMax);
+
         // Spring toward rDest
         const radialSpring = 0.9;
         a.r += (a.rDest - a.r) * radialSpring * dt;
         a.r = clamp(a.r, 20, rMax);
 
-        // Angular velocity: ~1/r^p + wobble → watery flow
+        // Neighbor-influenced angular velocity
         const p = 1.1;
-        const omega = a.omegaScale * a.baseOmega * Math.pow(120 / (a.r + 20), p);
-        const wobble = 0.35 * Math.sin(time * 0.7 + a.angPhase * TAU);
-        a.theta += (omega + wobble) * dt;
+        const baseOmega = a.omegaScale * a.baseOmega * Math.pow(120 / (a.r + 20), p);
+        const wobble = 0.15 * Math.sin(time * 0.7 + a.angPhase * TAU);
+        const neighborInfluencedOmega = baseOmega + angularPressure;
+        
+        // Ensure rotation never goes negative
+        const totalSpeed = Math.max(0.1, neighborInfluencedOmega + wobble);
+        a.theta += totalSpeed * dt;
 
+        // Calculate base orbital position
         a.x = cx + a.r * Math.cos(a.theta);
         a.y = cy + a.r * Math.sin(a.theta);
+        
+        // Apply organic floaty noise effects
+        a.floatOffsetX = Math.sin(time * a.floatSpeedX + a.floatPhaseX) * a.floatAmplitudeX;
+        a.floatOffsetY = Math.sin(time * a.floatSpeedY + a.floatPhaseY) * a.floatAmplitudeY;
+        a.floatScale = 1; // Keep uniform size
+        a.floatRotation = Math.sin(time * a.floatSpeedRotation + a.floatPhaseRotation) * a.floatAmplitudeRotation;
+        
+        // Add floaty offset to position
+        a.x += a.floatOffsetX;
+        a.y += a.floatOffsetY;
       }
+
     } else {
-      // Grouped mode: tiny jiggle
+      // Grouped mode: tiny jiggle + floaty effects
       for (const a of actors) {
         a.x += (Math.random() - 0.5) * 0.25;
         a.y += (Math.random() - 0.5) * 0.25;
+        
+        // Apply floaty effects in grouped mode too
+        const time = timeRef.current;
+        a.floatOffsetX = Math.sin(time * a.floatSpeedX + a.floatPhaseX) * a.floatAmplitudeX;
+        a.floatOffsetY = Math.sin(time * a.floatSpeedY + a.floatPhaseY) * a.floatAmplitudeY;
+        a.floatScale = 1; // Keep uniform size
+        a.floatRotation = Math.sin(time * a.floatSpeedRotation + a.floatPhaseRotation) * a.floatAmplitudeRotation;
+        
+        a.x += a.floatOffsetX;
+        a.y += a.floatOffsetY;
       }
     }
   };
@@ -224,20 +316,27 @@ export default function VortexAvatars({
     // Depth sort
     const actors = [...actorsRef.current].sort((a, b) => a.plane - b.plane);
     for (const a of actors) {
-      const baseSize = 20;
-      const size = clamp(baseSize * (1 + (a.plane - 1) * 0.25), 16, 26);
+      const size = 20; // Uniform size for all avatars
       const alpha = clamp(0.6 + (a.plane - 1) * 0.25, 0.45, 1);
       drawAvatar(ctx, a, size, alpha);
     }
   };
 
   const drawAvatar = (ctx: CanvasRenderingContext2D, a: any, size: number, alpha: number) => {
+    // Use consistent size (no more scale variation)
     const r = size / 2;
     const x = a.x - r;
     const y = a.y - r;
 
     ctx.save();
     ctx.globalAlpha = alpha;
+    
+    // Apply floaty rotation around avatar center
+    if (a.floatRotation !== 0) {
+      ctx.translate(a.x, a.y);
+      ctx.rotate(a.floatRotation);
+      ctx.translate(-a.x, -a.y);
+    }
 
     roundRect(ctx, x, y, size, size, r);
     ctx.clip();
