@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 /**
- * VortexAvatars (Remade)
+ * VortexAvatars (Pure Component)
  * - Organic whirlpool of rounded 20x20 avatars using <canvas> (≤200 ok).
  * - Inner orbits move faster; outer slower. Everyone slowly migrates in/out.
  * - Toggle button: Vortex ⇄ 10 groups of 3 (5 stacks left, 5 right).
  * - HiDPI aware, resizes to container, lightweight tween engine for transitions.
  */
 
-type Person = { id: string; name: string; image?: string };
+export type Person = { id: string; name: string; image?: string };
 
 // ---------- Math & Utils ----------
 const TAU = Math.PI * 2;
@@ -36,7 +36,19 @@ const loadImage = (src?: string | null): Promise<HTMLImageElement | null> =>
   });
 
 // ---------- Component ----------
-export default function VortexAvatars({ people: peopleProp }: { people?: Person[] }) {
+export default function VortexAvatars({ 
+  people,
+  showControls = true,
+  showStats = true,
+  statusText,
+  className = "w-full h-[540px]"
+}: { 
+  people: Person[];
+  showControls?: boolean;
+  showStats?: boolean;
+  statusText?: string;
+  className?: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [mode, setMode] = useState<"vortex" | "groups">("vortex");
 
@@ -47,8 +59,6 @@ export default function VortexAvatars({ people: peopleProp }: { people?: Person[
   const tweensRef = useRef<any[]>([]);
   const rafRef = useRef<number>(0);
   const timeRef = useRef(0);
-
-  const people = useMemo<Person[]>(() => peopleProp ?? samplePeople, [peopleProp]);
 
   // Mount: setup canvas sizing
   useEffect(() => {
@@ -359,18 +369,28 @@ export default function VortexAvatars({ people: peopleProp }: { people?: Person[
   };
 
   return (
-    <div className="w-full h-[540px] relative bg-black/90 rounded-2xl shadow-xl overflow-hidden">
-      <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3">
-        <div className="text-xs text-slate-200/80">
-          Mode: <span className="font-semibold">{mode}</span>
+    <div className={`${className} relative bg-black/90 rounded-2xl shadow-xl overflow-hidden`}>
+      {showControls && (
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between p-3">
+          <div className="flex items-center gap-3">
+            <div className="text-xs text-slate-200/80">
+              Mode: <span className="font-semibold">{mode}</span>
+            </div>
+            {showStats && (
+              <div className="flex items-center gap-1 text-xs text-slate-200/80">
+                {statusText && <span>{statusText}</span>}
+                <span>{people.length} avatars</span>
+              </div>
+            )}
+          </div>
+          <button
+            onClick={toggleMode}
+            className="px-3 py-1.5 rounded-xl bg-white/10 text-slate-100 text-sm hover:bg-white/20 active:scale-[0.98] transition"
+          >
+            {mode === "vortex" ? "Group into 10×3" : "Back to Vortex"}
+          </button>
         </div>
-        <button
-          onClick={toggleMode}
-          className="px-3 py-1.5 rounded-xl bg-white/10 text-slate-100 text-sm hover:bg-white/20 active:scale-[0.98] transition"
-        >
-          {mode === "vortex" ? "Group into 10×3" : "Back to Vortex"}
-        </button>
-      </div>
+      )}
       <canvas ref={canvasRef} className="w-full h-full" />
       <div className="absolute bottom-2 right-3 text-[10px] text-white/40 select-none">
         Organic whirlpool • up to ~200 avatars
@@ -378,9 +398,3 @@ export default function VortexAvatars({ people: peopleProp }: { people?: Person[
     </div>
   );
 }
-
-// ---------- Sample Data (40 placeholders) ----------
-const samplePeople: Person[] = Array.from({ length: 40 }, (_, i) => ({
-  id: String(i + 1),
-  name: `Person ${i + 1}`,
-}));

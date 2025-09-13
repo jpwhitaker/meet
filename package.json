@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "@types/qrcode.react": "^1.0.5",
     "next": "15.5.3",
     "qrcode.react": "^4.2.0",
