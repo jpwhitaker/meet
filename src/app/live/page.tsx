@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { Leva, useControls } from 'leva';
 import RealtimeVortex from '@/components/RealtimeVortex';
 import { useRealtimePresence } from '@/hooks/useRealtimePresence';
-import { samplePeople30 } from '@/lib/sampleData';
+import { samplePeople30, generateSamplePeople } from '@/lib/sampleData';
 import { getTailwindColorsFromId, getInitialsFromName } from '@/lib/colorUtils';
 
 // Helper function to pluralize text
@@ -15,7 +16,39 @@ export default function LivePage() {
   const [hasJoined, setHasJoined] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const { joinRoom, leaveRoom, users, isConnected, connectionError } = useRealtimePresence('live');
+  const { joinRoom, leaveRoom, users, isConnected, connectionError, addTestUsers, clearTestUsers } = useRealtimePresence('live');
+
+  // Leva controls for testing
+  const controls = useControls({
+    'Add 30 Test Users': {
+      value: false,
+      onChange: (value: boolean) => {
+        if (value) {
+          handleAddTestUsers();
+        }
+      }
+    },
+    'Clear Test Users': {
+      value: false,
+      onChange: (value: boolean) => {
+        if (value) {
+          clearTestUsers();
+        }
+      }
+    }
+  });
+
+  const handleAddTestUsers = () => {
+    const testPeople = generateSamplePeople(30);
+    
+    // Convert to the format expected by addTestUsers
+    const testUsersData = testPeople.map(person => ({
+      name: person.name,
+      email: `${person.name.toLowerCase().replace(' ', '.')}@test.com`
+    }));
+    
+    addTestUsers(testUsersData);
+  };
 
   const handleJoin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,6 +117,9 @@ export default function LivePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 p-8">
+      {/* Leva Controls */}
+      <Leva collapsed={false} />
+      
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800 mb-4">
@@ -179,24 +215,14 @@ export default function LivePage() {
           </div>
         </div>
         
-        <div className="mt-8 text-center space-y-4">
-          <p className="text-sm text-gray-600">
-            Share this URL with others to see them join in real-time!
-          </p>
-          <div className="flex justify-center gap-4">
-            <button
-              onClick={handleLeave}
-              className="px-6 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl text-sm transition border border-red-200"
-            >
-              Leave Session
-            </button>
-            <button
-              onClick={() => navigator.clipboard.writeText(window.location.href)}
-              className="px-6 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-sm transition border border-blue-200"
-            >
-              Copy Link
-            </button>
-          </div>
+        {/* Leave Button */}
+        <div className="text-center mt-8">
+          <button
+            onClick={handleLeave}
+            className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition border border-red-600"
+          >
+            Leave Room
+          </button>
         </div>
       </div>
     </div>

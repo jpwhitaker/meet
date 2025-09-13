@@ -11,6 +11,7 @@ export type PresenceUser = {
 
 export function useRealtimePresence(roomName: string) {
   const [users, setUsers] = useState<PresenceUser[]>([])
+  const [testUsers, setTestUsers] = useState<PresenceUser[]>([])
   const [channel, setChannel] = useState<RealtimeChannel | null>(null)
   const [isConnected, setIsConnected] = useState(false)
   const [connectionError, setConnectionError] = useState<string | null>(null)
@@ -23,6 +24,24 @@ export function useRealtimePresence(roomName: string) {
     console.log('✅ Users state updated:', users.length, 'users')
     console.log('📊 State data:', users)
   }, [users])
+
+  // Update users when test users change
+  useEffect(() => {
+    if (channel) {
+      const presenceState = channel.presenceState()
+      const realUsers: PresenceUser[] = []
+      
+      Object.values(presenceState).forEach((presences: any) => {
+        presences.forEach((presence: any) => {
+          realUsers.push(presence)
+        })
+      })
+      
+      const allUsers = [...realUsers, ...testUsers]
+      setUsers(allUsers)
+      setUpdateCounter(prev => prev + 1)
+    }
+  }, [testUsers, channel])
 
   useEffect(() => {
     // Check if Supabase is properly configured
@@ -46,16 +65,19 @@ export function useRealtimePresence(roomName: string) {
 
     const updateUsers = () => {
       const presenceState = roomChannel.presenceState()
-      const allUsers: PresenceUser[] = []
+      const realUsers: PresenceUser[] = []
       
       Object.values(presenceState).forEach((presences: any) => {
         presences.forEach((presence: any) => {
-          allUsers.push(presence)
+          realUsers.push(presence)
         })
       })
       
-      console.log('🔄 Updating users:', allUsers.length, 'users found')
-      console.log('📊 Users data:', allUsers)
+      console.log('🔄 Updating users:', realUsers.length, 'real users found')
+      console.log('📊 Users data:', realUsers)
+      
+      // Combine real users with test users
+      const allUsers = [...realUsers, ...testUsers]
       
       // Force update with new array
       setUsers(allUsers)
@@ -135,6 +157,21 @@ export function useRealtimePresence(roomName: string) {
     await channel.untrack()
   }
 
+  const addTestUsers = (newTestUsers: Omit<PresenceUser, 'id' | 'joinedAt'>[]) => {
+    const usersWithMetadata: PresenceUser[] = newTestUsers.map(user => ({
+      id: crypto.randomUUID(),
+      name: user.name,
+      email: user.email,
+      joinedAt: new Date().toISOString(),
+    }))
+    
+    setTestUsers(prev => [...prev, ...usersWithMetadata])
+  }
+
+  const clearTestUsers = () => {
+    setTestUsers([])
+  }
+
   console.log('🎯 Hook returning:', users.length, 'users, counter:', updateCounter);
   
   return {
@@ -143,5 +180,7 @@ export function useRealtimePresence(roomName: string) {
     connectionError,
     joinRoom,
     leaveRoom,
+    addTestUsers,
+    clearTestUsers,
   }
 }

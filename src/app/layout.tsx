@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HTW | Mingle",
+  title: "Tech Week | Meet",
   description: "Connect and mingle with HTW community",
 };
 
@@ -36,7 +36,7 @@ export default function RootLayout({
                   href="/" 
                   className="text-xl font-bold text-gray-900 hover:text-blue-600 transition-colors duration-200"
                 >
-                  HTW | Mingle
+                  Tech Week | Meet
                 </Link>
               </div>
             </div>
