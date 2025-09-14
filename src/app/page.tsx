@@ -6,7 +6,7 @@ import SudoLogo from '@/components/SudoLogo';
 
 export default function Home() {
   // Hardcoded URL as requested
-  const signupUrl = 'https://techweekmeet.vercel.app/';
+  const signupUrl = 'https://techweekmeet.vercel.app/live';
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-8">
