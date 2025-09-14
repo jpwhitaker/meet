@@ -6,10 +6,44 @@ import RealtimeVortex from '@/components/RealtimeVortex';
 import { useRealtimePresence } from '@/hooks/useRealtimePresence';
 import { samplePeople30, generateSamplePeople } from '@/lib/sampleData';
 import { getTailwindColorsFromId, getInitialsFromName } from '@/lib/colorUtils';
+import { useVortexStore, selectMode } from '@/stores/vortexStore';
 
 // Helper function to pluralize text
 const pluralize = (count: number, singular: string, plural: string) => {
   return count === 1 ? singular : plural;
+};
+
+// Helper function to group users into lines (similar to VortexAvatars grouping logic)
+const groupUsersIntoLines = (users: any[]) => {
+  const peoplePerGroup = 3;
+  const completeGroups = Math.floor(users.length / peoplePerGroup);
+  const leftoverPeople = users.length % peoplePerGroup;
+  
+  // Handle edge case: if we have fewer than 3 people total, create 1 group
+  const totalGroups = completeGroups === 0 ? 1 : completeGroups;
+  
+  const groups: any[][] = [];
+  
+  if (completeGroups === 0) {
+    // Special case: fewer than 3 people total, just place them in one group
+    groups.push(users.slice(0));
+  } else {
+    // First, place all complete groups of 3
+    for (let g = 0; g < completeGroups; g++) {
+      const startIdx = g * peoplePerGroup;
+      const endIdx = startIdx + peoplePerGroup;
+      groups.push(users.slice(startIdx, endIdx));
+    }
+    
+    // Now distribute leftover people among the first few groups
+    const leftoverUsers = users.slice(completeGroups * peoplePerGroup);
+    for (let i = 0; i < leftoverPeople; i++) {
+      const groupIndex = i % totalGroups; // Cycle through groups
+      groups[groupIndex].push(leftoverUsers[i]);
+    }
+  }
+  
+  return groups;
 };
 
 export default function LivePage() {
@@ -17,6 +51,7 @@ export default function LivePage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const { joinRoom, leaveRoom, users, isConnected, connectionError, addTestUsers, clearTestUsers } = useRealtimePresence('live');
+  const mode = useVortexStore(selectMode);
 
   // Leva controls for testing
   const _controls = useControls({
@@ -69,7 +104,7 @@ export default function LivePage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-8">
         <div className="bg-white shadow-lg border border-gray-200 rounded-2xl p-8 max-w-md w-full">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Join Live Vortex</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Join Live Meet</h2>
           <form onSubmit={handleJoin} className="space-y-4">
             <input
               type="text"
@@ -108,7 +143,7 @@ export default function LivePage() {
             )}
           </form>
           <p className="text-xs text-gray-500 text-center mt-4">
-            Join the live session and see real people in the vortex
+            Join the live session and see real people in the meet
           </p>
         </div>
       </div>
@@ -149,7 +184,7 @@ export default function LivePage() {
           <div>
             <div className="bg-white shadow-lg border border-gray-200 rounded-2xl p-6 h-[400px] overflow-y-auto">
               <h3 className="text-xl font-semibold text-gray-800 mb-4 sticky top-0 bg-inherit">
-                Online Users ({users.length})
+                {mode === 'groups' ? `User Groups (${users.length} people)` : `Online Users (${users.length})`}
               </h3>
               
               {users.length === 0 ? (
@@ -168,7 +203,32 @@ export default function LivePage() {
                     </>
                   )}
                 </div>
+              ) : mode === 'groups' ? (
+                // Grouped display: names arranged in lines
+                <div className="space-y-4">
+                  {groupUsersIntoLines(users).map((group, groupIndex) => (
+                    <div key={groupIndex} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                      <div className="flex flex-wrap items-center gap-3">
+                        {group.map((user) => {
+                          const colors = getTailwindColorsFromId(user.id);
+                          return (
+                            <div key={user.id} className="flex items-center gap-2">
+                              <div className={`w-8 h-8 ${colors.bg} rounded-full flex items-center justify-center ${colors.text} font-semibold border ${colors.border} text-xs`}>
+                                {getInitialsFromName(user.name)}
+                              </div>
+                              <span className="text-sm font-medium text-gray-800">{user.name}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-2 text-xs text-gray-500">
+                        Group {groupIndex + 1} • {group.length} {pluralize(group.length, 'person', 'people')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : (
+                // Vortex display: individual cards
                 <div className="space-y-3">
                   {users.map((user, _index) => {
                     const colors = getTailwindColorsFromId(user.id);

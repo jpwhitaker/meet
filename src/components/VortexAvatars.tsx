@@ -4,7 +4,7 @@ import { useVortexStore, selectMode } from "@/stores/vortexStore";
 
 /**
  * VortexAvatars (Pure Component)
- * - Organic whirlpool of rounded 20x20 avatars using <canvas> (≤200 ok).
+ * - Organic whirlpool of rounded 32x32 avatars using <canvas> (≤200 ok).
  * - Inner orbits move faster; outer slower. Everyone slowly migrates in/out.
  * - Toggle button: Vortex ⇄ 10 groups of 3 (5 stacks left, 5 right).
  * - HiDPI aware, resizes to container, lightweight tween engine for transitions.
@@ -331,7 +331,7 @@ export default function VortexAvatars({
     const actors = actorsRef.current;
     const sortedActors = [...actors].sort((a, b) => a.plane - b.plane);
     for (const a of sortedActors) {
-      const size = 20; // Uniform size for all avatars
+      const size = 32; // Uniform size for all avatars
       const alpha = 1; // Always 100% opacity
       drawAvatar(ctx, a, size, alpha);
     }
@@ -416,7 +416,7 @@ export default function VortexAvatars({
 
     const padX = 28;
     const padY = 18;
-    const colW = 22;
+    const colW = 38;
     const peoplePerGroup = 3;
 
     // Calculate number of complete groups and leftover people
@@ -436,7 +436,7 @@ export default function VortexAvatars({
     const groupSpacing = Math.min(40, availableHeight / Math.max(1, groupsPerSide - 1));
     
     const leftX = 20 + padX;
-    const rightX = w - (20 + padX) - colW * 3; // Make room for 4 people if needed
+    const rightX = w - (20 + padX) - colW * 4; // Make room for 4 people if needed
 
     console.log('📐 Left X:', leftX, 'Right X:', rightX, 'Group spacing:', groupSpacing);
 

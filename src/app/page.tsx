@@ -2,6 +2,7 @@
 'use client';
 
 import { QRCodeSVG } from 'qrcode.react';
+import SudoLogo from '@/components/SudoLogo';
 
 function getAppUrl(): string {
   // Allow custom override
@@ -27,11 +28,15 @@ export default function Home() {
       <div className="text-center space-y-8">
         <div>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Welcome to Meet
+            Welcome to Meet!
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
             Scan the QR code below to sign up
           </p>
+        </div>
+        
+        <div className="flex justify-center mb-8">
+          <SudoLogo size={120} />
         </div>
         
         <div className="flex justify-center">
