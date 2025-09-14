@@ -125,7 +125,7 @@ export function useRealtimePresence(roomName: string) {
       roomChannel.unsubscribe()
       setIsConnected(false)
     }
-  }, [roomName])
+  }, [roomName, testUsers])
 
   const joinRoom = async (user: Omit<PresenceUser, 'id' | 'joinedAt'>) => {
     if (!channel || !isConnected) return

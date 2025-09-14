@@ -3,9 +3,24 @@
 
 import { QRCodeSVG } from 'qrcode.react';
 
+function getAppUrl(): string {
+  // Allow custom override
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+  
+  // Use Vercel URL when deployed
+  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+    return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+  }
+  
+  // Default to localhost for development
+  return 'http://localhost:3000';
+}
+
 export default function Home() {
-  // Use your ngrok URL for easy access from anywhere
-  const signupUrl = 'https://ec9c841de615.ngrok-free.app/live';
+  // Dynamic URL based on environment
+  const signupUrl = `${getAppUrl()}/live`;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-8">
